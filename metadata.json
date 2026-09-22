@@ -1,0 +1,6 @@
+{
+  "name": "Pro Camera",
+  "description": "Professional camera with up to 4K/8K capture, manual ISO, shutter speed, focus, and dual-camera picture-in-picture video recording.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
