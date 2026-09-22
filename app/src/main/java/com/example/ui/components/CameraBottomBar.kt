@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FlipCameraAndroid
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -165,28 +166,57 @@ fun CameraBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Gallery Thumbnail
+            // Left: Gallery Thumbnail (Tap opens default device gallery app)
+            val galleryInteractionSource = remember { MutableInteractionSource() }
+            val isGalleryPressed by galleryInteractionSource.collectIsPressedAsState()
+            val galleryScale by animateFloatAsState(
+                targetValue = if (isGalleryPressed) 0.88f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "gallery_scale"
+            )
+
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(54.dp)
+                    .scale(galleryScale)
                     .clip(CircleShape)
                     .background(Color(0x33FFFFFF))
-                    .border(2.dp, Color(0x44FFFFFF), CircleShape)
-                    .clickable { onGalleryClick() }
+                    .border(2.dp, if (latestThumbnailUri != null) CameraYellow else Color(0x44FFFFFF), CircleShape)
+                    .clickable(
+                        interactionSource = galleryInteractionSource,
+                        indication = null
+                    ) { onGalleryClick() }
                     .testTag("gallery_thumbnail_button"),
                 contentAlignment = Alignment.Center
             ) {
                 if (latestThumbnailUri != null) {
                     AsyncImage(
                         model = latestThumbnailUri,
-                        contentDescription = "Gallery",
+                        contentDescription = "Open last capture in default gallery app",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                    // Gallery launch badge overlay in the corner
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(2.dp)
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xDD000000)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = CameraYellow,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                 } else {
                     Icon(
                         imageVector = Icons.Filled.PhotoLibrary,
-                        contentDescription = "Open Gallery",
+                        contentDescription = "Open default gallery",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )

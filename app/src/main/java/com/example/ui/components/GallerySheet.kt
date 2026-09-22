@@ -167,6 +167,28 @@ fun GallerySheet(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Open in Default Gallery App
+                        IconButton(
+                            onClick = {
+                                com.example.camera.GalleryHelper.openDefaultGallery(
+                                    context = context,
+                                    latestMedia = selectedMedia,
+                                    onFallbackToInternal = {}
+                                )
+                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x33FFFFFF))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.OpenInNew,
+                                contentDescription = "Open in Default Gallery",
+                                tint = CameraYellow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
                         // Share
                         IconButton(
                             onClick = {

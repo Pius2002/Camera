@@ -127,5 +127,6 @@ data class HardwareCameraCapabilities(
     val minFocusDistance: Float = 10.0f,
     val supportsConcurrentCamera: Boolean = false,
     val hasFrontCamera: Boolean = true,
-    val hasBackCamera: Boolean = true
+    val hasBackCamera: Boolean = true,
+    val hasRearFlash: Boolean = true
 )

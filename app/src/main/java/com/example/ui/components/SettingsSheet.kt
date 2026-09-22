@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.FlashModeOption
 import com.example.data.model.HardwareCameraCapabilities
 import com.example.data.model.ResolutionOption
 import com.example.data.model.StorageInfo
@@ -44,6 +46,8 @@ fun SettingsSheet(
     onShowGridChanged: (Boolean) -> Unit,
     showLeveler: Boolean,
     onShowLevelerChanged: (Boolean) -> Unit,
+    currentFlash: FlashModeOption = FlashModeOption.AUTO,
+    onFlashChanged: (FlashModeOption) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -346,6 +350,79 @@ fun SettingsSheet(
                                 checkedTrackColor = CameraYellow
                             )
                         )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Rear Camera Flash Mode Section
+            Text(
+                text = "REAR CAMERA FLASH",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = CameraYellow,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0x22FFFFFF)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Hardware Flash Mode (Auto / On / Off)",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Configures the back camera LED flash trigger behavior for photo capture and video.",
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            Triple(FlashModeOption.AUTO, Icons.Filled.FlashAuto, "flash_settings_auto"),
+                            Triple(FlashModeOption.ON, Icons.Filled.FlashOn, "flash_settings_on"),
+                            Triple(FlashModeOption.OFF, Icons.Filled.FlashOff, "flash_settings_off")
+                        ).forEach { (flash, icon, tag) ->
+                            val isSelected = currentFlash == flash
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) CameraYellow.copy(alpha = 0.25f) else Color(0x33000000),
+                                border = if (isSelected) BorderStroke(1.2.dp, CameraYellow) else BorderStroke(0.5.dp, Color(0x33FFFFFF)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onFlashChanged(flash) }
+                                    .testTag(tag)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = flash.label,
+                                        tint = if (isSelected) CameraYellow else Color.White.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = flash.label,
+                                        color = if (isSelected) CameraYellow else Color.White,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

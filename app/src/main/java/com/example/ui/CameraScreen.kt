@@ -300,6 +300,7 @@ fun CameraScreen(
             isVideoMode = isVideoMode,
             maxVideoResolution = uiState.hardwareCapabilities.maxVideoResolution,
             storageInfo = uiState.storageInfo,
+            isFacingFront = uiState.isFacingFront,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
@@ -336,7 +337,16 @@ fun CameraScreen(
             latestThumbnailUri = uiState.capturedMediaList.firstOrNull()?.uri,
             onShutterClick = onShutterClick,
             onSwitchCameraClick = { viewModel.toggleCameraFacing() },
-            onGalleryClick = { viewModel.setShowGallerySheet(true) },
+            onGalleryClick = {
+                val latest = uiState.capturedMediaList.firstOrNull()
+                com.example.camera.GalleryHelper.openDefaultGallery(
+                    context = context,
+                    latestMedia = latest,
+                    onFallbackToInternal = {
+                        viewModel.setShowGallerySheet(true)
+                    }
+                )
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -359,6 +369,8 @@ fun CameraScreen(
                 onShowGridChanged = { viewModel.setShowGrid(it) },
                 showLeveler = uiState.showLeveler,
                 onShowLevelerChanged = { viewModel.setShowLeveler(it) },
+                currentFlash = uiState.currentFlashMode,
+                onFlashChanged = { viewModel.setFlashMode(it) },
                 onDismiss = { viewModel.setShowSettingsSheet(false) }
             )
         }

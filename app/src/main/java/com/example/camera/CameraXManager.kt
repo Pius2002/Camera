@@ -193,13 +193,8 @@ class CameraXManager(
                 }
             }
 
-            // Apply torch if enabled
-            if (currentFlashMode == FlashModeOption.TORCH) {
-                primaryCamera?.cameraControl?.enableTorch(true)
-            } else {
-                primaryCamera?.cameraControl?.enableTorch(false)
-            }
-
+            // Apply flash mode to the newly bound camera
+            setFlashMode(currentFlashMode)
         } catch (e: Exception) {
             Log.e("CameraXManager", "Use case binding failed", e)
         }
@@ -380,13 +375,23 @@ class CameraXManager(
 
     fun setFlashMode(flashMode: FlashModeOption) {
         currentFlashMode = flashMode
+        val isRear = currentLensFacing == CameraSelector.LENS_FACING_BACK
+        val hasFlash = primaryCamera?.cameraInfo?.hasFlashUnit() ?: isRear
+
         when (flashMode) {
             FlashModeOption.TORCH -> {
-                primaryCamera?.cameraControl?.enableTorch(true)
+                if (isRear && hasFlash) {
+                    primaryCamera?.cameraControl?.enableTorch(true)
+                }
                 imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
             }
             FlashModeOption.ON -> {
-                primaryCamera?.cameraControl?.enableTorch(false)
+                val isVideo = currentMode == CameraMode.VIDEO || currentMode == CameraMode.DUAL
+                if (isVideo && isRear && hasFlash) {
+                    primaryCamera?.cameraControl?.enableTorch(true)
+                } else {
+                    primaryCamera?.cameraControl?.enableTorch(false)
+                }
                 imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
             }
             FlashModeOption.AUTO -> {

@@ -65,6 +65,19 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         loadHardwareCapabilities()
         startSensorMonitoring()
         refreshStorageInfo()
+        loadLatestMedia()
+    }
+
+    private fun loadLatestMedia() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val media = com.example.camera.GalleryHelper.queryLatestMedia(getApplication())
+            if (media.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    capturedMediaList = media,
+                    selectedGalleryMedia = media.firstOrNull()
+                )
+            }
+        }
     }
 
     private fun loadHardwareCapabilities() {
@@ -172,7 +185,30 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setFlashMode(flash: FlashModeOption) {
-        _uiState.value = _uiState.value.copy(currentFlashMode = flash)
+        val notice = if (_uiState.value.isFacingFront) {
+            "Rear Flash: ${flash.label} (Set for rear camera)"
+        } else {
+            "Flash: ${flash.label}"
+        }
+        _uiState.value = _uiState.value.copy(
+            currentFlashMode = flash,
+            statusNotice = notice
+        )
+        viewModelScope.launch {
+            delay(1800)
+            if (_uiState.value.statusNotice == notice) {
+                _uiState.value = _uiState.value.copy(statusNotice = null)
+            }
+        }
+    }
+
+    fun cycleFlashMode() {
+        val next = when (_uiState.value.currentFlashMode) {
+            FlashModeOption.AUTO -> FlashModeOption.ON
+            FlashModeOption.ON -> FlashModeOption.OFF
+            else -> FlashModeOption.AUTO
+        }
+        setFlashMode(next)
     }
 
     fun setTimer(timer: TimerOption) {

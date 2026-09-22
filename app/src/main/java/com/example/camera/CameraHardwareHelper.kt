@@ -147,7 +147,12 @@ object CameraHardwareHelper {
                 },
                 hasBackCamera = cameraManager.cameraIdList.any {
                     cameraManager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
-                }
+                },
+                hasRearFlash = cameraManager.cameraIdList.firstOrNull {
+                    cameraManager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+                }?.let {
+                    cameraManager.getCameraCharacteristics(it).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) ?: true
+                } ?: true
             )
         } catch (e: Exception) {
             // Safe fallback

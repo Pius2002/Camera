@@ -1,11 +1,17 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +34,7 @@ import com.example.data.model.FlashModeOption
 import com.example.data.model.ResolutionOption
 import com.example.data.model.StorageInfo
 import com.example.data.model.TimerOption
+import com.example.ui.theme.CameraCyan
 import com.example.ui.theme.CameraDarkGrey
 import com.example.ui.theme.CameraYellow
 
@@ -44,6 +52,7 @@ fun CameraTopBar(
     isVideoMode: Boolean = false,
     maxVideoResolution: ResolutionOption = ResolutionOption.RES_4K,
     storageInfo: StorageInfo? = null,
+    isFacingFront: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var showFlashMenu by remember { mutableStateOf(false) }
@@ -59,32 +68,78 @@ fun CameraTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Flash Toggle Button
-            IconButton(
-                onClick = {
-                    showFlashMenu = !showFlashMenu
-                    showRatioMenu = false
-                    showTimerMenu = false
-                    showResMenu = false
-                },
+            // 1. Flash Control Button (Rear Camera Flash: Auto, On, Off)
+            val flashInteractionSource = remember { MutableInteractionSource() }
+            val isFlashPressed by flashInteractionSource.collectIsPressedAsState()
+            val flashScale by animateFloatAsState(
+                targetValue = if (isFlashPressed) 0.90f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "flash_scale"
+            )
+
+            Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x55000000))
-                    .testTag("flash_button")
+                    .scale(flashScale)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (currentFlash != FlashModeOption.OFF) CameraYellow.copy(alpha = 0.22f)
+                        else Color(0x55000000)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (currentFlash != FlashModeOption.OFF) CameraYellow.copy(alpha = 0.7f)
+                        else Color(0x33FFFFFF),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clickable(
+                        interactionSource = flashInteractionSource,
+                        indication = null
+                    ) {
+                        // Directly cycle between AUTO -> ON -> OFF -> AUTO
+                        val nextMode = when (currentFlash) {
+                            FlashModeOption.AUTO -> FlashModeOption.ON
+                            FlashModeOption.ON -> FlashModeOption.OFF
+                            else -> FlashModeOption.AUTO
+                        }
+                        onFlashChanged(nextMode)
+                        showFlashMenu = true
+                        showRatioMenu = false
+                        showTimerMenu = false
+                        showResMenu = false
+                    }
+                    .padding(horizontal = 9.dp, vertical = 6.dp)
+                    .testTag("flash_control_button")
+                    .testTag("flash_button"),
+                contentAlignment = Alignment.Center
             ) {
-                val (icon, tint) = when (currentFlash) {
-                    FlashModeOption.ON -> Icons.Filled.FlashOn to CameraYellow
-                    FlashModeOption.AUTO -> Icons.Filled.FlashAuto to CameraYellow
-                    FlashModeOption.TORCH -> Icons.Filled.Highlight to CameraYellow
-                    FlashModeOption.OFF -> Icons.Filled.FlashOff to Color.White
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val (icon, tint) = when (currentFlash) {
+                        FlashModeOption.AUTO -> Icons.Filled.FlashAuto to CameraYellow
+                        FlashModeOption.ON -> Icons.Filled.FlashOn to CameraYellow
+                        FlashModeOption.OFF -> Icons.Filled.FlashOff to Color.White.copy(alpha = 0.75f)
+                        FlashModeOption.TORCH -> Icons.Filled.Highlight to CameraYellow
+                    }
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = "Rear Camera Flash ${currentFlash.label}",
+                        tint = tint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = when (currentFlash) {
+                            FlashModeOption.AUTO -> "AUTO"
+                            FlashModeOption.ON -> "ON"
+                            FlashModeOption.OFF -> "OFF"
+                            FlashModeOption.TORCH -> "ON"
+                        },
+                        color = if (currentFlash != FlashModeOption.OFF) CameraYellow else Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                Icon(
-                    imageVector = icon,
-                    contentDescription = "Flash ${currentFlash.label}",
-                    tint = tint,
-                    modifier = Modifier.size(20.dp)
-                )
             }
 
             // 2. Aspect Ratio Button
@@ -216,29 +271,83 @@ fun CameraTopBar(
 
         // Sub-menus popdowns
         AnimatedVisibility(visible = showFlashMenu, enter = fadeIn(), exit = fadeOut()) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(CameraDarkGrey.copy(alpha = 0.9f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .background(CameraDarkGrey.copy(alpha = 0.95f))
+                    .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                FlashModeOption.entries.forEach { flash ->
-                    val isSelected = currentFlash == flash
-                    TextButton(
-                        onClick = {
-                            onFlashChanged(flash)
-                            showFlashMenu = false
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isFacingFront) "REAR CAMERA FLASH (Active on Rear Camera)" else "REAR CAMERA FLASH MODE",
+                        color = if (isFacingFront) Color.LightGray else CameraYellow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                    IconButton(
+                        onClick = { showFlashMenu = false },
+                        modifier = Modifier.size(20.dp)
                     ) {
-                        Text(
-                            text = flash.label,
-                            color = if (isSelected) CameraYellow else Color.White,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 13.sp
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Close flash menu",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(14.dp)
                         )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val flashModes = listOf(
+                        Triple(FlashModeOption.AUTO, Icons.Filled.FlashAuto, "flash_mode_auto"),
+                        Triple(FlashModeOption.ON, Icons.Filled.FlashOn, "flash_mode_on"),
+                        Triple(FlashModeOption.OFF, Icons.Filled.FlashOff, "flash_mode_off")
+                    )
+                    flashModes.forEach { (flash, icon, tag) ->
+                        val isSelected = currentFlash == flash
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) CameraYellow.copy(alpha = 0.22f) else Color.Transparent,
+                            border = if (isSelected) BorderStroke(1.dp, CameraYellow) else null,
+                            modifier = Modifier
+                                .clickable {
+                                    onFlashChanged(flash)
+                                    showFlashMenu = false
+                                }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                .testTag(tag)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = flash.label,
+                                    tint = if (isSelected) CameraYellow else Color.White.copy(alpha = 0.75f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = flash.label,
+                                    color = if (isSelected) CameraYellow else Color.White,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
